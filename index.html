@@ -163,6 +163,96 @@
             border-color: var(--primary);
         }
 
+        /* Genre Filter Section */
+        .genre-filter-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid var(--card-border);
+        }
+
+        .genre-filter-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+
+        .genre-filter-title h3 {
+            color: var(--primary);
+            font-size: 1.2rem;
+        }
+
+        .genre-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .genre-btn {
+            padding: 8px 15px;
+            border-radius: 20px;
+            border: 1px solid var(--card-border);
+            background-color: var(--card-bg);
+            color: var(--light);
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+        }
+
+        .genre-btn:hover {
+            background-color: rgba(139, 92, 246, 0.2);
+            border-color: var(--primary);
+        }
+
+        .genre-btn.active {
+            background-color: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .selected-genres {
+            margin-top: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .selected-genre {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background-color: var(--primary);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+        }
+
+        .remove-genre {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        .clear-all-genres {
+            background-color: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.3s;
+        }
+
+        .clear-all-genres:hover {
+            background-color: rgba(239, 68, 68, 0.3);
+        }
+
         /* Main Content */
         main {
             padding: 20px 0 40px;
@@ -424,6 +514,12 @@
                 align-items: stretch;
             }
             
+            .genre-buttons {
+                justify-content: flex-start;
+                overflow-x: auto;
+                padding-bottom: 10px;
+            }
+            
             .footer-links {
                 flex-direction: column;
                 gap: 10px;
@@ -441,6 +537,12 @@
             
             .pagination {
                 flex-wrap: wrap;
+            }
+            
+            .genre-filter-title {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
             }
         }
 
@@ -622,6 +724,20 @@
                 
                 <button id="filter-btn" class="active"><i class="fas fa-filter"></i> Terapkan Filter</button>
             </div>
+            
+            <!-- Genre Filter Section -->
+            <div class="genre-filter-section">
+                <div class="genre-filter-title">
+                    <h3><i class="fas fa-tags"></i> Filter Berdasarkan Genre</h3>
+                    <div class="selected-genres">
+                        <!-- Selected genres will be added here -->
+                    </div>
+                </div>
+                
+                <div class="genre-buttons" id="genre-buttons">
+                    <!-- Genre buttons will be added here -->
+                </div>
+            </div>
         </div>
     </section>
 
@@ -704,7 +820,32 @@
         let currentStatus = '';
         let currentRating = '';
         let currentOrder = 'popularity';
+        let currentGenres = []; // Array untuk menyimpan genre yang dipilih
         let totalPages = 1;
+
+        // Daftar genre anime populer
+        const popularGenres = [
+            { id: 1, name: 'Action' },
+            { id: 2, name: 'Adventure' },
+            { id: 4, name: 'Comedy' },
+            { id: 8, name: 'Drama' },
+            { id: 10, name: 'Fantasy' },
+            { id: 22, name: 'Romance' },
+            { id: 24, name: 'Sci-Fi' },
+            { id: 27, name: 'Shounen' },
+            { id: 23, name: 'School' },
+            { id: 25, name: 'Slice of Life' },
+            { id: 31, name: 'Supernatural' },
+            { id: 36, name: 'Thriller' },
+            { id: 37, name: 'Mystery' },
+            { id: 7, name: 'Mystery' },
+            { id: 14, name: 'Horror' },
+            { id: 9, name: 'Ecchi' },
+            { id: 5, name: 'Avant Garde' },
+            { id: 26, name: 'Sports' },
+            { id: 30, name: 'Psychological' },
+            { id: 15, name: 'Kids' }
+        ];
 
         // DOM Elements
         const animeContainer = document.getElementById('anime-container');
@@ -726,11 +867,16 @@
         const refreshBtn = document.getElementById('refresh-btn');
         const animeModal = document.getElementById('anime-modal');
         const closeModalBtn = document.querySelector('.close-modal');
+        const genreButtonsContainer = document.getElementById('genre-buttons');
+        const selectedGenresContainer = document.querySelector('.selected-genres');
 
         // Event Listeners
         document.addEventListener('DOMContentLoaded', () => {
             // Load initial anime data
             loadAnimeData();
+            
+            // Load genre buttons
+            loadGenreButtons();
             
             // Set up event listeners
             searchBtn.addEventListener('click', performSearch);
@@ -744,6 +890,9 @@
             
             themeToggle.addEventListener('click', toggleTheme);
             refreshBtn.addEventListener('click', () => {
+                // Reset filters
+                currentGenres = [];
+                updateSelectedGenresDisplay();
                 loadAnimeData();
             });
             
@@ -766,6 +915,121 @@
         });
 
         // Functions
+        function loadGenreButtons() {
+            popularGenres.forEach(genre => {
+                const genreBtn = document.createElement('button');
+                genreBtn.className = 'genre-btn';
+                genreBtn.textContent = genre.name;
+                genreBtn.dataset.id = genre.id;
+                genreBtn.dataset.name = genre.name;
+                
+                // Check if this genre is already selected
+                if (currentGenres.includes(genre.id)) {
+                    genreBtn.classList.add('active');
+                }
+                
+                genreBtn.addEventListener('click', () => toggleGenre(genre.id, genre.name));
+                genreButtonsContainer.appendChild(genreBtn);
+            });
+        }
+
+        function toggleGenre(genreId, genreName) {
+            const index = currentGenres.indexOf(genreId);
+            
+            if (index === -1) {
+                // Add genre if not already selected
+                currentGenres.push(genreId);
+            } else {
+                // Remove genre if already selected
+                currentGenres.splice(index, 1);
+            }
+            
+            // Update button appearance
+            const genreBtn = document.querySelector(`.genre-btn[data-id="${genreId}"]`);
+            genreBtn.classList.toggle('active');
+            
+            // Update selected genres display
+            updateSelectedGenresDisplay();
+            
+            // Reload anime data with new genre filter
+            currentPage = 1;
+            loadAnimeData();
+        }
+
+        function updateSelectedGenresDisplay() {
+            selectedGenresContainer.innerHTML = '';
+            
+            if (currentGenres.length === 0) {
+                selectedGenresContainer.innerHTML = '<span style="color: var(--gray); font-size: 0.9rem;">Belum ada genre yang dipilih</span>';
+                return;
+            }
+            
+            // Add selected genres
+            currentGenres.forEach(genreId => {
+                const genre = popularGenres.find(g => g.id === genreId);
+                if (genre) {
+                    const selectedGenre = document.createElement('div');
+                    selectedGenre.className = 'selected-genre';
+                    selectedGenre.innerHTML = `
+                        ${genre.name}
+                        <button class="remove-genre" data-id="${genreId}">×</button>
+                    `;
+                    selectedGenresContainer.appendChild(selectedGenre);
+                }
+            });
+            
+            // Add clear all button
+            const clearAllBtn = document.createElement('button');
+            clearAllBtn.className = 'clear-all-genres';
+            clearAllBtn.textContent = 'Hapus Semua';
+            clearAllBtn.addEventListener('click', clearAllGenres);
+            selectedGenresContainer.appendChild(clearAllBtn);
+            
+            // Add event listeners to remove buttons
+            document.querySelectorAll('.remove-genre').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const genreId = parseInt(btn.dataset.id);
+                    removeGenre(genreId);
+                });
+            });
+        }
+
+        function removeGenre(genreId) {
+            const index = currentGenres.indexOf(genreId);
+            if (index !== -1) {
+                currentGenres.splice(index, 1);
+                
+                // Update button appearance
+                const genreBtn = document.querySelector(`.genre-btn[data-id="${genreId}"]`);
+                genreBtn.classList.remove('active');
+                
+                // Update selected genres display
+                updateSelectedGenresDisplay();
+                
+                // Reload anime data
+                currentPage = 1;
+                loadAnimeData();
+            }
+        }
+
+        function clearAllGenres() {
+            // Remove active class from all genre buttons
+            document.querySelectorAll('.genre-btn.active').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Clear current genres array
+            currentGenres = [];
+            
+            // Update selected genres display
+            updateSelectedGenresDisplay();
+            
+            // Reload anime data
+            currentPage = 1;
+            loadAnimeData();
+        }
+
         async function loadAnimeData() {
             showLoading();
             
@@ -786,6 +1050,11 @@
                 
                 if (currentRating) {
                     url += `&rating=${currentRating}`;
+                }
+                
+                // Add genre filter if any genres are selected
+                if (currentGenres.length > 0) {
+                    url += `&genres=${currentGenres.join(',')}`;
                 }
                 
                 const response = await fetch(url);
@@ -1074,14 +1343,6 @@
             loadingElement.style.display = 'none';
             animeContainer.style.display = 'none';
             noResultsElement.style.display = 'none';
-        }
-
-        // Initial load with some sample data if API fails
-        async function loadSampleData() {
-            // This is a fallback function in case the API is not accessible
-            // It would load sample data from a local source
-            // For this demo, we'll use the API directly
-            return [];
         }
     </script>
 </body>
